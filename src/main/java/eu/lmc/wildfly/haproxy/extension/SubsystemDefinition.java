@@ -1,7 +1,12 @@
 package eu.lmc.wildfly.haproxy.extension;
 
 import org.jboss.as.controller.SimpleResourceDefinition;
+import org.jboss.as.controller.descriptions.DefaultResourceAddDescriptionProvider;
+import org.jboss.as.controller.operations.common.GenericSubsystemDescribeHandler;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.OperationEntry;
+
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
 /**
  * @author <a href="mailto:tcerar@redhat.com">Tomaz Cerar</a>
@@ -22,6 +27,12 @@ public class SubsystemDefinition extends SimpleResourceDefinition {
     public void registerOperations(ManagementResourceRegistration resourceRegistration) {
         super.registerOperations(resourceRegistration);
         //you can register aditional operations here
+/*
+        resourceRegistration.registerOperationHandler(ADD, SubsystemAdd.INSTANCE,
+                new DefaultResourceAddDescriptionProvider(resourceRegistration, getResourceDescriptionResolver()),
+                false
+                );
+*/
     }
 
     @Override
