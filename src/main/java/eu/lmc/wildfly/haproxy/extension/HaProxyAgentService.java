@@ -8,8 +8,11 @@ import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
+import org.jboss.threads.JBossThreadPoolExecutor;
 
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The service itself.
@@ -21,11 +24,24 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
     private final Logger logger = Logger.getLogger(HaProxyAgentService.class);
 
     private final InjectedValue<SocketBinding> injectedSocketBinding = new InjectedValue<>();
-    private final InjectedValue<ThreadFactory> injectedThreadFactory = new InjectedValue<>();
+    private final String name;
     private final String source;
+    private final int poolSize;
 
-    public HaProxyAgentService(String source) {
+    private ExecutorService executor;
+
+    public HaProxyAgentService(String name, String source, int poolSize) {
+        this.name = name;
         this.source = source;
+        this.poolSize = poolSize;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getPoolSize() {
+        return poolSize;
     }
 
     @Override
@@ -37,26 +53,30 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
         return injectedSocketBinding;
     }
 
-    public InjectedValue<ThreadFactory> getInjectedThreadFactory() {
-        return injectedThreadFactory;
-    }
-
     public static ServiceName createServiceName(final String source) {
         return ServiceName.JBOSS.append("haproxy-agent", source);
     }
 
     @Override
-    public void start(StartContext startContext) throws StartException {
-        final ThreadFactory threadFactory = injectedThreadFactory.getOptionalValue();
+    public synchronized void start(StartContext startContext) throws StartException {
         final SocketBinding socketBinding = injectedSocketBinding.getOptionalValue();
-        logger.info("haproxy agent for " + source + ", binding to port " + socketBinding.getPort());
-        logger.info("thread factory: " + threadFactory);
+        logger.info("haproxy agent " + getName() + " for  " + source + ", binding to port " + socketBinding.getPort());
+        executor = new JBossThreadPoolExecutor(1, getPoolSize(),
+                60L, TimeUnit.SECONDS,
+                new SynchronousQueue<>()
+        );
+        logger.info("executor: " + executor);
+
         //TODO: bind!
     }
 
     @Override
-    public void stop(StopContext stopContext) {
-        logger.info("haproxy agent for " + source + " shutting down");
+    public synchronized void stop(StopContext stopContext) {
+        logger.info("haproxy agent " + getName() + " shutting down");
+        if (executor != null) {
+            executor.shutdownNow();
+            executor = null;
+        }
     }
 
 }

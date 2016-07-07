@@ -1,13 +1,6 @@
 package eu.lmc.wildfly.haproxy.extension;
 
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
-
-import java.util.List;
-
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.subsystem.test.AbstractSubsystemTest;
@@ -15,6 +8,10 @@ import org.jboss.as.subsystem.test.KernelServices;
 import org.jboss.dmr.ModelNode;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.List;
+
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
 
 /**
@@ -39,11 +36,11 @@ public class SubsystemParsingTestCase extends AbstractSubsystemTest {
         //Parse the subsystem xml into operations
         String subsystemXml =
                 "<subsystem xmlns=\"" + SubsystemExtension.NAMESPACE + "\">" +
-                        "<server source=\"/tmp/wildfly-status-haproxy\"" +
-                        " thread-factory=\"haproxy-thread-factory\"" +
+                        "<server name=\"x1\" source=\"/tmp/wildfly-status-haproxy\"" +
+                        " thread-pool-size=\"12\"" +
                         " socket-binding=\"haproxy-socket-1\"" +
                         "/>" +
-                        "<server source=\"x2\"/>" +
+                        "<server name=\"x2\" source=\"x2\"/>" +
                         "</subsystem>";
         List<ModelNode> operations = super.parse(subsystemXml);
 
@@ -66,14 +63,7 @@ public class SubsystemParsingTestCase extends AbstractSubsystemTest {
                 Assert.assertEquals(2, addr.size());
                 element = addr.getElement(1);
                 Assert.assertEquals(SubsystemExtension.SERVER, element.getKey());
-                switch(cnt) {
-                    case 1:
-                        Assert.assertEquals("/tmp/wildfly-status-haproxy", element.getValue());
-                        break;
-                    case 2:
-                        Assert.assertEquals("x2", element.getValue());
-                        break;
-                }
+                Assert.assertEquals("x" + cnt, element.getValue());
             }
 
             cnt++;
@@ -106,8 +96,8 @@ public class SubsystemParsingTestCase extends AbstractSubsystemTest {
         //Parse the subsystem xml and install into the first controller
         String subsystemXml =
                 "<subsystem xmlns=\"" + SubsystemExtension.NAMESPACE + "\">" +
-                        "<server source=\"/tmp/wildfly-status-haproxy\"" +
-                        " thread-factory=\"haproxy-thread-factory\"" +
+                        "<server name=\"x1\" source=\"/tmp/wildfly-status-haproxy\"" +
+                        " thread-pool-size=\"1001\"" +
                         " socket-binding=\"haproxy-socket-1\"" +
                         ">" +
                         "</server>" +

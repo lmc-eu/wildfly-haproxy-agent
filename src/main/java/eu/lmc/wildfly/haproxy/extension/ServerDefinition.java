@@ -18,8 +18,11 @@
 package eu.lmc.wildfly.haproxy.extension;
 
 import org.jboss.as.controller.SimpleAttributeDefinition;
+import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
+import org.jboss.as.controller.operations.validation.IntRangeValidator;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 
 import java.util.Map;
@@ -28,11 +31,17 @@ import java.util.stream.Stream;
 
 public class ServerDefinition extends SimpleResourceDefinition {
 
+    /**
+     * Default value of {@link Element#THREAD_POOL_SIZE}
+     */
+    public static final int DEFAULT_POOL_SIZE = 5;
+
     public enum Element {
         UNKNOWN(null),
         SOCKET_BINDING("socket-binding"),
-        THREAD_FACTORY("thread-factory"),
-        SOURCE("source");
+        THREAD_POOL_SIZE("thread-pool-size"),
+        SOURCE("source"),
+        NAME("name");
 
         private final String xmlName;
 
@@ -53,12 +62,28 @@ public class ServerDefinition extends SimpleResourceDefinition {
 
     }
 
-    protected static final SimpleAttributeDefinition SOCKET_BINDING_ATTR = new SimpleAttributeDefinition(
-            Element.SOCKET_BINDING.getXmlName(), ModelType.STRING, true);
-    protected static final SimpleAttributeDefinition THREAD_FACTORY_ATTR = new SimpleAttributeDefinition(
-            Element.THREAD_FACTORY.getXmlName(), ModelType.STRING, true);
-    protected static final SimpleAttributeDefinition SOURCE_ATTR = new SimpleAttributeDefinition(
-            Element.SOURCE.getXmlName(), ModelType.STRING, false);
+    protected static final SimpleAttributeDefinition SOCKET_BINDING_ATTR = new SimpleAttributeDefinitionBuilder(
+            Element.SOCKET_BINDING.getXmlName(), ModelType.STRING)
+            .setAllowNull(true)
+            .setAllowExpression(false)
+            .build();
+    protected static final SimpleAttributeDefinition THREAD_POOL_SIZE_ATTR = new SimpleAttributeDefinitionBuilder(
+            Element.THREAD_POOL_SIZE.getXmlName(), ModelType.STRING)
+            .setAllowNull(true)
+            .setDefaultValue(ModelNode.fromString(String.valueOf(DEFAULT_POOL_SIZE)))
+            .setValidator(new IntRangeValidator(1, false, true))
+            .setAllowExpression(true)
+            .build();
+    protected static final SimpleAttributeDefinition SOURCE_ATTR = new SimpleAttributeDefinitionBuilder(
+            Element.SOURCE.getXmlName(), ModelType.STRING)
+            .setAllowNull(false)
+            .setAllowExpression(true)
+            .build();
+    protected static final SimpleAttributeDefinition NAME_ATTR = new SimpleAttributeDefinitionBuilder(
+            Element.NAME.getXmlName(), ModelType.STRING)
+            .setAllowNull(false)
+            .setAllowExpression(false)
+            .build();
 
     public static final ServerDefinition INSTANCE = new ServerDefinition();
 
@@ -72,7 +97,8 @@ public class ServerDefinition extends SimpleResourceDefinition {
     @Override
     public void registerAttributes(final ManagementResourceRegistration resourceRegistration) {
         resourceRegistration.registerReadWriteAttribute(SOCKET_BINDING_ATTR, null, DummyHandler.INSTANCE);
-        resourceRegistration.registerReadWriteAttribute(THREAD_FACTORY_ATTR, null, DummyHandler.INSTANCE);
+        resourceRegistration.registerReadWriteAttribute(THREAD_POOL_SIZE_ATTR, null, DummyHandler.INSTANCE);
         resourceRegistration.registerReadWriteAttribute(SOURCE_ATTR, null, DummyHandler.INSTANCE);
+        resourceRegistration.registerReadWriteAttribute(NAME_ATTR, null, DummyHandler.INSTANCE);
     }
 }

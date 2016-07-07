@@ -19,8 +19,9 @@
     </xs:complexType>
 
     <xs:complexType name="serverType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
         <xs:attribute name="socket-binding" type="xs:string" use="optional"/>
-        <xs:attribute name="thread-factory" type="xs:string" use="optional"/>
+        <xs:attribute name="thread-pool-size" type="xs:int" use="optional" default="5"/>
         <xs:attribute name="source" type="xs:string" use="required"/>
     </xs:complexType>
 

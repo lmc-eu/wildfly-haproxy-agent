@@ -52,7 +52,7 @@ class SubsystemParser implements XMLStreamConstants, XMLElementReader<List<Model
         addServerOperation.get(OP).set(ADD);
 
         final int count = reader.getAttributeCount();
-        String file = null;
+        String serviceKey = null;
         for (int i = 0; i < count; i++) {
             final String name = reader.getAttributeLocalName(i);
             final String value = reader.getAttributeValue(i);
@@ -60,12 +60,15 @@ class SubsystemParser implements XMLStreamConstants, XMLElementReader<List<Model
                 case SOCKET_BINDING:
                     ServerDefinition.SOCKET_BINDING_ATTR.parseAndSetParameter(value, addServerOperation, reader);
                     break;
-                case THREAD_FACTORY:
-                    ServerDefinition.THREAD_FACTORY_ATTR.parseAndSetParameter(value, addServerOperation, reader);
+                case THREAD_POOL_SIZE:
+                    ServerDefinition.THREAD_POOL_SIZE_ATTR.parseAndSetParameter(value, addServerOperation, reader);
                     break;
                 case SOURCE:
                     ServerDefinition.SOURCE_ATTR.parseAndSetParameter(value, addServerOperation, reader);
-                    file = value;
+                    break;
+                case NAME:
+                    ServerDefinition.NAME_ATTR.parseAndSetParameter(value, addServerOperation, reader);
+                    serviceKey = value;
                     break;
                 default:
                     throw unexpectedAttribute(reader, i);
@@ -73,10 +76,10 @@ class SubsystemParser implements XMLStreamConstants, XMLElementReader<List<Model
         }
         ParseUtils.requireNoContent(reader);
 
-        if (file == null) {
-            throw ParseUtils.missingRequiredElement(reader, Collections.singleton(ServerDefinition.Element.SOURCE.getXmlName()));
+        if (serviceKey == null) {
+            throw ParseUtils.missingRequiredElement(reader, Collections.singleton(ServerDefinition.Element.NAME.getXmlName()));
         }
-        PathAddress addr = PathAddress.pathAddress(SUBSYSTEM_PATH, PathElement.pathElement(SERVER, file));
+        PathAddress addr = PathAddress.pathAddress(SUBSYSTEM_PATH, PathElement.pathElement(SERVER, serviceKey));
         addServerOperation.get(OP_ADDR).set(addr.toModelNode());
 
         list.add(addServerOperation);
@@ -94,10 +97,11 @@ class SubsystemParser implements XMLStreamConstants, XMLElementReader<List<Model
         if (server.isDefined()) {
             for (Property property : server.asPropertyList()) {
                 writer.writeStartElement(SERVER);
-                writer.writeAttribute(ServerDefinition.Element.SOURCE.getXmlName(), property.getName());
+                writer.writeAttribute(ServerDefinition.Element.NAME.getXmlName(), property.getName());
                 final ModelNode entry = property.getValue();
+                ServerDefinition.SOURCE_ATTR.marshallAsAttribute(entry, true, writer);
                 ServerDefinition.SOCKET_BINDING_ATTR.marshallAsAttribute(entry, true, writer);
-                ServerDefinition.THREAD_FACTORY_ATTR.marshallAsAttribute(entry, true, writer);
+                ServerDefinition.THREAD_POOL_SIZE_ATTR.marshallAsAttribute(entry, true, writer);
                 writer.writeEndElement();
             }
         }
