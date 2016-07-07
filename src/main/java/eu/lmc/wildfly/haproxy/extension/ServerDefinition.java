@@ -32,7 +32,7 @@ public class ServerDefinition extends SimpleResourceDefinition {
         UNKNOWN(null),
         SOCKET_BINDING("socket-binding"),
         THREAD_FACTORY("thread-factory"),
-        FILE("file");
+        SOURCE("source");
 
         private final String xmlName;
 
@@ -54,11 +54,11 @@ public class ServerDefinition extends SimpleResourceDefinition {
     }
 
     protected static final SimpleAttributeDefinition SOCKET_BINDING_ATTR = new SimpleAttributeDefinition(
-            Element.SOCKET_BINDING.getXmlName(), ModelType.STRING, false);
+            Element.SOCKET_BINDING.getXmlName(), ModelType.STRING, true);
     protected static final SimpleAttributeDefinition THREAD_FACTORY_ATTR = new SimpleAttributeDefinition(
             Element.THREAD_FACTORY.getXmlName(), ModelType.STRING, true);
     protected static final SimpleAttributeDefinition FILE_ATTR = new SimpleAttributeDefinition(
-            Element.FILE.getXmlName(), ModelType.STRING, true);
+            Element.SOURCE.getXmlName(), ModelType.STRING, false);
 
     public static final ServerDefinition INSTANCE = new ServerDefinition();
 

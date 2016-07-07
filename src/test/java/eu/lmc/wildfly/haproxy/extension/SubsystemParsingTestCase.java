@@ -63,6 +63,7 @@ public class SubsystemParsingTestCase extends AbstractSubsystemTest {
         //Parse the subsystem xml and install into the controller
         String subsystemXml =
                 "<subsystem xmlns=\"" + SubsystemExtension.NAMESPACE + "\">" +
+//                        "<server/>" +
                         "</subsystem>";
         KernelServices services = super.createKernelServicesBuilder(null).setSubsystemXml(subsystemXml).build();
 
