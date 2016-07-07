@@ -64,7 +64,7 @@ class SubsystemParser implements XMLStreamConstants, XMLElementReader<List<Model
                     ServerDefinition.THREAD_FACTORY_ATTR.parseAndSetParameter(value, addServerOperation, reader);
                     break;
                 case SOURCE:
-                    ServerDefinition.FILE_ATTR.parseAndSetParameter(value, addServerOperation, reader);
+                    ServerDefinition.SOURCE_ATTR.parseAndSetParameter(value, addServerOperation, reader);
                     file = value;
                     break;
                 default:

@@ -57,7 +57,7 @@ public class ServerDefinition extends SimpleResourceDefinition {
             Element.SOCKET_BINDING.getXmlName(), ModelType.STRING, true);
     protected static final SimpleAttributeDefinition THREAD_FACTORY_ATTR = new SimpleAttributeDefinition(
             Element.THREAD_FACTORY.getXmlName(), ModelType.STRING, true);
-    protected static final SimpleAttributeDefinition FILE_ATTR = new SimpleAttributeDefinition(
+    protected static final SimpleAttributeDefinition SOURCE_ATTR = new SimpleAttributeDefinition(
             Element.SOURCE.getXmlName(), ModelType.STRING, false);
 
     public static final ServerDefinition INSTANCE = new ServerDefinition();
@@ -73,6 +73,6 @@ public class ServerDefinition extends SimpleResourceDefinition {
     public void registerAttributes(final ManagementResourceRegistration resourceRegistration) {
         resourceRegistration.registerReadWriteAttribute(SOCKET_BINDING_ATTR, null, DummyHandler.INSTANCE);
         resourceRegistration.registerReadWriteAttribute(THREAD_FACTORY_ATTR, null, DummyHandler.INSTANCE);
-        resourceRegistration.registerReadWriteAttribute(FILE_ATTR, null, DummyHandler.INSTANCE);
+        resourceRegistration.registerReadWriteAttribute(SOURCE_ATTR, null, DummyHandler.INSTANCE);
     }
 }
