@@ -33,7 +33,7 @@ public class SubsystemDeploymentProcessor implements DeploymentUnitProcessor {
 
     @Override
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
-        log.info("Deploy");
+        log.debug("deploy, phase " + phaseContext.getPhase());
     }
 
     @Override
