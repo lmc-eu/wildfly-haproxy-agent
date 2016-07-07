@@ -49,7 +49,7 @@ class SubsystemParser implements XMLStreamConstants, XMLElementReader<List<Model
         for (int i = 0; i < count; i++) {
             final String name = reader.getAttributeLocalName(i);
             final String value = reader.getAttributeValue(i);
-            switch (ServerDefinition.Element.of(name)) {
+            switch (ServerDefinition.Element.findByXmlName(name)) {
                 case SOCKET_BINDING:
                     ServerDefinition.SOCKET_BINDING_ATTR.parseAndSetParameter(value, addServerOperation, reader);
                     break;

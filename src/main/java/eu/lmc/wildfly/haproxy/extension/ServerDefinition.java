@@ -22,8 +22,9 @@ import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelType;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ServerDefinition extends SimpleResourceDefinition {
 
@@ -33,40 +34,31 @@ public class ServerDefinition extends SimpleResourceDefinition {
         THREAD_FACTORY("thread-factory"),
         FILE("file");
 
-        private final String name;
+        private final String xmlName;
 
-        Element(final String name) {
-            this.name = name;
+        Element(final String xmlName) {
+            this.xmlName = xmlName;
         }
 
-        public String localName() {
-            return name;
+        public String getXmlName() {
+            return xmlName;
         }
 
-        private static final Map<String, Element> MAP;
+        private static final Map<String, Element> MAP =
+                Stream.of(values()).collect(Collectors.toMap(Element::getXmlName, e -> e));
 
-        static {
-            final Map<String, Element> map = new HashMap<>();
-            for (Element element : values()) {
-                final String name = element.localName();
-                if (name != null) map.put(name, element);
-            }
-            MAP = map;
-        }
-
-        public static Element of(final String localName) {
-            final Element element = MAP.get(localName);
-            return element == null ? UNKNOWN : element;
+        public static Element findByXmlName(final String xmlName) {
+            return MAP.getOrDefault(xmlName, UNKNOWN);
         }
 
     }
 
     protected static final SimpleAttributeDefinition SOCKET_BINDING_ATTR = new SimpleAttributeDefinition(
-            Element.SOCKET_BINDING.localName(), ModelType.STRING, false);
+            Element.SOCKET_BINDING.getXmlName(), ModelType.STRING, false);
     protected static final SimpleAttributeDefinition THREAD_FACTORY_ATTR = new SimpleAttributeDefinition(
-            Element.THREAD_FACTORY.localName(), ModelType.STRING, true);
+            Element.THREAD_FACTORY.getXmlName(), ModelType.STRING, true);
     protected static final SimpleAttributeDefinition FILE_ATTR = new SimpleAttributeDefinition(
-            Element.FILE.localName(), ModelType.STRING, true);
+            Element.FILE.getXmlName(), ModelType.STRING, true);
 
     public static final ServerDefinition INSTANCE = new ServerDefinition();
 
