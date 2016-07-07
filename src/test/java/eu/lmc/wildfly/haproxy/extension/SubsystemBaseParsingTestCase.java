@@ -20,7 +20,7 @@ public class SubsystemBaseParsingTestCase extends AbstractSubsystemBaseTest {
     @Override
     protected String getSubsystemXml() throws IOException {
         return "<subsystem xmlns=\"" + SubsystemExtension.NAMESPACE + "\">" +
-                "<server source=\"/tmp/wildfly-status-haproxy\n\"/>"
+                "<server source=\"/tmp/wildfly-status-haproxy\"/>"
                 +
                 "</subsystem>";
     }
