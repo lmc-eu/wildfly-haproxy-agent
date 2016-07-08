@@ -17,7 +17,7 @@ import org.jboss.logging.Logger;
  */
 public class SubsystemDeploymentProcessor implements DeploymentUnitProcessor {
 
-    Logger log = Logger.getLogger(SubsystemDeploymentProcessor.class);
+    private static Logger log = Logger.getLogger(SubsystemDeploymentProcessor.class);
 
     /**
      * See {@link Phase} for a description of the different phases

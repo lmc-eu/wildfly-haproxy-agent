@@ -4,22 +4,23 @@ import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
-import org.jboss.as.controller.ServiceVerificationHandler;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.network.SocketBinding;
 import org.jboss.dmr.ModelNode;
+import org.jboss.logging.Logger;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.wildfly.extension.io.IOServices;
 import org.xnio.XnioWorker;
 
-import java.util.List;
-
 /**
  * Add "server" element
  */
 class ServerAddHandler extends AbstractAddStepHandler {
+
+    private static Logger log = Logger.getLogger(ServerAddHandler.class);
 
     public static final ServerAddHandler INSTANCE = new ServerAddHandler();
 
@@ -35,9 +36,9 @@ class ServerAddHandler extends AbstractAddStepHandler {
         ServerDefinition.THREAD_POOL_SIZE_ATTR.validateAndSet(operation, model);
     }
 
-    //TODO: replace with non-deprecated method variant
     @Override
-    protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model, ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers) throws OperationFailedException {
+    protected void performRuntime(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+        final ModelNode model = resource.getModel();
         final ModelNode socketBinding = ServerDefinition.SOCKET_BINDING_ATTR.resolveModelAttribute(context, model);
         final ModelNode workerBinding = ServerDefinition.WORKER_ATTR.resolveModelAttribute(context, model);
         final int poolSize = ServerDefinition.THREAD_POOL_SIZE_ATTR.resolveModelAttribute(context, model).asInt(ServerDefinition.DEFAULT_POOL_SIZE);
@@ -57,10 +58,10 @@ class ServerAddHandler extends AbstractAddStepHandler {
                     XnioWorker.class, service.getInjectedXnioWorker());
         }
 
-        final ServiceController<HaProxyAgentService> controller = sb.addListener(verificationHandler)
+        final ServiceController<HaProxyAgentService> controller = sb
                 .setInitialMode(ServiceController.Mode.ACTIVE)
                 .install();
-        newControllers.add(controller);
+        log.log(Logger.Level.INFO, "server controller added: " + controller);
     }
 
 }

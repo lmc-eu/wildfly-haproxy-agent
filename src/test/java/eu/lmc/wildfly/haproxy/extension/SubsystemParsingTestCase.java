@@ -131,7 +131,5 @@ public class SubsystemParsingTestCase extends AbstractSubsystemTest {
         KernelServices services = super.createKernelServicesBuilder(null).setSubsystemXml(subsystemXml).build();
         //Checks that the subsystem was removed from the model
         super.assertRemoveSubsystemResources(services);
-
-        //TODO Chek that any services that were installed were removed here
     }
 }
