@@ -1,5 +1,6 @@
 package eu.lmc.wildfly.haproxy.extension;
 
+import eu.lmc.wildfly.haproxy.server.HaProxyAgentService;
 import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;

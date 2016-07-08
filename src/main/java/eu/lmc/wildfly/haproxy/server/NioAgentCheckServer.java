@@ -1,6 +1,5 @@
 package eu.lmc.wildfly.haproxy.server;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -21,20 +20,16 @@ import java.util.logging.Logger;
 /**
  * Plain SDK NIO implementation of haproxy-agent:
  * Start raw TCP socket that writes status from static file (or just default value).
- * <p />
+ * <p/>
  * Makes its own thread pool, of configured size.
  */
-public class NioAgentCheckServer implements Closeable {
+class NioAgentCheckServer extends AbstractAgentCheckServer {
 
     private final static Logger logger = Logger.getLogger(NioAgentCheckServer.class.getName());
-
-    private static final byte[] DEFAULT_STATE = "ready\n".getBytes();
 
     protected final ThreadFactory threadFactory;
     protected final int threadPoolSize;
     protected final Path filename;
-    private int maxSize = 100;
-    private int timeoutSeconds = 4;
 
     private AsynchronousServerSocketChannel channel;
     private AsynchronousChannelGroup asyncGroup;
@@ -46,22 +41,7 @@ public class NioAgentCheckServer implements Closeable {
         asyncGroup = AsynchronousChannelGroup.withFixedThreadPool(threadPoolSize, threadFactory);
     }
 
-    public int getMaxSize() {
-        return maxSize;
-    }
-
-    public void setMaxSize(int maxSize) {
-        this.maxSize = maxSize;
-    }
-
-    public int getTimeoutSeconds() {
-        return timeoutSeconds;
-    }
-
-    public void setTimeoutSeconds(int timeoutSeconds) {
-        this.timeoutSeconds = timeoutSeconds;
-    }
-
+    @Override
     public void start(InetAddress listenAddress, int port) throws IOException {
         channel = AsynchronousServerSocketChannel.open(asyncGroup);
         channel.bind(new InetSocketAddress(listenAddress, port));
@@ -77,7 +57,7 @@ public class NioAgentCheckServer implements Closeable {
                     }
 
                     final FileChannel file = FileChannel.open(filename, StandardOpenOption.READ);
-                    int size = file.size() > maxSize ? maxSize : (int) file.size();
+                    int size = file.size() > getMaxSize() ? getMaxSize() : (int) file.size();
                     responseBuffer = ByteBuffer.allocate(size);
                     while (responseBuffer.hasRemaining() && file.read(responseBuffer) >= 0) {
                     }
@@ -89,7 +69,7 @@ public class NioAgentCheckServer implements Closeable {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer("writing: " + responseBuffer);
                 }
-                new ResponseHandler(stream, timeoutSeconds, TimeUnit.SECONDS)
+                new ResponseHandler(stream, getTimeoutSeconds(), TimeUnit.SECONDS)
                         .startWriting(responseBuffer);
             }
 

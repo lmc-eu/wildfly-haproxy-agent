@@ -1,6 +1,6 @@
-package eu.lmc.wildfly.haproxy.extension;
+package eu.lmc.wildfly.haproxy.server;
 
-import eu.lmc.wildfly.haproxy.server.NioAgentCheckServer;
+import eu.lmc.wildfly.haproxy.extension.ServerDefinition;
 import org.jboss.as.network.SocketBinding;
 import org.jboss.logging.Logger;
 import org.jboss.msc.service.Service;
@@ -32,7 +32,7 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
     private final String name;
     private final String source;
 
-    private NioAgentCheckServer server;
+    private AbstractAgentCheckServer server;
 
     public HaProxyAgentService(String name, String source) {
         this.name = name;
@@ -74,6 +74,10 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
         logger.info("haproxy agent " + getName() + " for  " + source + ", binding to port " +  port);
 
         final Path filename = Paths.get(source);
+        startNio(port, bindAddr, filename);
+    }
+
+    private void startNio(int port, InetAddress bindAddr, Path filename) throws StartException {
         ThreadFactory tf = new JBossThreadFactory(
                 null, true, null,
                 "haproxy-" + getName() + "-%i",
@@ -98,7 +102,11 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
     public synchronized void stop(StopContext stopContext) {
         logger.info("haproxy agent " + getName() + " shutting down");
         if (server != null) {
-            server.close();
+            try {
+                server.close();
+            } catch (IOException e) {
+                logger.error("failed to stop agent server", e);
+            }
             server = null;
         }
     }
