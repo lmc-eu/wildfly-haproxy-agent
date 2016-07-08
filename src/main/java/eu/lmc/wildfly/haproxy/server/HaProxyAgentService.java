@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.concurrent.ThreadFactory;
 
 /**
@@ -66,6 +67,9 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
         return ServiceName.JBOSS.append("haproxy-agent", source);
     }
 
+    @SuppressWarnings("unused")
+    protected static boolean USE_JDK_NIO = false;
+
     @Override
     public synchronized void start(StartContext startContext) throws StartException {
         final SocketBinding socketBinding = injectedSocketBinding.getOptionalValue();
@@ -74,7 +78,22 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
         logger.info("haproxy agent " + getName() + " for  " + source + ", binding to port " +  port);
 
         final Path filename = Paths.get(source);
-        startNio(port, bindAddr, filename);
+        if (USE_JDK_NIO) {
+            startNio(port, bindAddr, filename);
+        } else {
+            startXnio(port, bindAddr, filename);
+        }
+    }
+
+    private void startXnio(int port, InetAddress bindAddr, Path filename) throws StartException {
+        try {
+            final XnioWorker xnio = getInjectedXnioWorker().getValue();
+            server = new XnioAgentCheckServer(xnio, Optional.of(filename.toFile()));
+            server.start(bindAddr, port);
+        } catch (IOException e) {
+            logger.error("failed to start...", e);
+            throw new StartException(e);
+        }
     }
 
     private void startNio(int port, InetAddress bindAddr, Path filename) throws StartException {
