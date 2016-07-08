@@ -1,5 +1,6 @@
 package eu.lmc.wildfly.haproxy.extension;
 
+import eu.lmc.wildfly.haproxy.server.NioAgentCheckServer;
 import org.jboss.as.network.SocketBinding;
 import org.jboss.logging.Logger;
 import org.jboss.msc.service.Service;
@@ -30,22 +31,16 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
     private final InjectedValue<XnioWorker> injectedXnioWorker = new InjectedValue<>();
     private final String name;
     private final String source;
-    private final int poolSize;
 
     private NioAgentCheckServer server;
 
-    public HaProxyAgentService(String name, String source, int poolSize) {
+    public HaProxyAgentService(String name, String source) {
         this.name = name;
         this.source = source;
-        this.poolSize = poolSize;
     }
 
     public String getName() {
         return name;
-    }
-
-    public int getPoolSize() {
-        return poolSize;
     }
 
     @Override
@@ -87,7 +82,11 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
                 null
         );
         try {
-            server = new NioAgentCheckServer(tf, getPoolSize(), filename);
+            final XnioWorker xnio = getInjectedXnioWorker().getValue();
+            final int poolSize = xnio.getIoThreadCount();
+            logger.info("pool size: "+poolSize);
+            assert poolSize > 0;
+            server = new NioAgentCheckServer(tf, poolSize, filename);
             server.start(bindAddr, port);
         } catch (IOException e) {
             logger.error("failed to start...", e);

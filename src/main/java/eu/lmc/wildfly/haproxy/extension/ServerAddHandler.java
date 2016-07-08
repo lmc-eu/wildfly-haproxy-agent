@@ -33,7 +33,6 @@ class ServerAddHandler extends AbstractAddStepHandler {
         ServerDefinition.SOURCE_ATTR.validateAndSet(operation, model);
         ServerDefinition.SOCKET_BINDING_ATTR.validateAndSet(operation, model);
         ServerDefinition.WORKER_ATTR.validateAndSet(operation, model);
-        ServerDefinition.THREAD_POOL_SIZE_ATTR.validateAndSet(operation, model);
     }
 
     @Override
@@ -41,11 +40,10 @@ class ServerAddHandler extends AbstractAddStepHandler {
         final ModelNode model = resource.getModel();
         final ModelNode socketBinding = ServerDefinition.SOCKET_BINDING_ATTR.resolveModelAttribute(context, model);
         final ModelNode workerBinding = ServerDefinition.WORKER_ATTR.resolveModelAttribute(context, model);
-        final int poolSize = ServerDefinition.THREAD_POOL_SIZE_ATTR.resolveModelAttribute(context, model).asInt(ServerDefinition.DEFAULT_POOL_SIZE);
         final String source = ServerDefinition.SOURCE_ATTR.resolveModelAttribute(context, model).asString();
         //source name is special, because it's key
         final String srvName = PathAddress.pathAddress(operation.get(ModelDescriptionConstants.ADDRESS)).getLastElement().getValue();
-        final HaProxyAgentService service = new HaProxyAgentService(srvName, source, poolSize);
+        final HaProxyAgentService service = new HaProxyAgentService(srvName, source);
 
         final ServiceName name = HaProxyAgentService.createServiceName(srvName);
         final ServiceBuilder<HaProxyAgentService> sb = context.getServiceTarget().addService(name, service);

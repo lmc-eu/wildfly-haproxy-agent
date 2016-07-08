@@ -40,7 +40,6 @@ public class SubsystemParsingTestCase extends AbstractSubsystemTest {
                 "<subsystem xmlns=\"" + SubsystemExtension.NAMESPACE + "\">" +
                         "<server name=\"x1\" source=\"/tmp/wildfly-status-haproxy\"" +
                         " worker=\"w1\"" +
-                        " thread-pool-size=\"12\"" +
                         " socket-binding=\"haproxy-socket-1\"" +
                         "/>" +
                         "<server name=\"x2\" source=\"x2\"/>" +
@@ -101,7 +100,6 @@ public class SubsystemParsingTestCase extends AbstractSubsystemTest {
                 "<subsystem xmlns=\"" + SubsystemExtension.NAMESPACE + "\">" +
                         "<server name=\"x1\" source=\"/tmp/wildfly-status-haproxy\"" +
                         " worker=\"w1\"" +
-                        " thread-pool-size=\"1001\"" +
                         " socket-binding=\"haproxy-socket-1\"" +
                         ">" +
                         "</server>" +

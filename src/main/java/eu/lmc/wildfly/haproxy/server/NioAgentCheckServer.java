@@ -1,4 +1,4 @@
-package eu.lmc.wildfly.haproxy.extension;
+package eu.lmc.wildfly.haproxy.server;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -19,9 +19,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Plain SDK NIO implementation of haproxy-agent:
  * Start raw TCP socket that writes status from static file (or just default value).
+ * <p />
+ * Makes its own thread pool, of configured size.
  */
-class NioAgentCheckServer implements Closeable {
+public class NioAgentCheckServer implements Closeable {
 
     private final static Logger logger = Logger.getLogger(NioAgentCheckServer.class.getName());
 

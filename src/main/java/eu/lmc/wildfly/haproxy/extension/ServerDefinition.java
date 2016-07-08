@@ -20,9 +20,7 @@ package eu.lmc.wildfly.haproxy.extension;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
-import org.jboss.as.controller.operations.validation.IntRangeValidator;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
-import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 
 import java.util.Map;
@@ -31,17 +29,12 @@ import java.util.stream.Stream;
 
 public class ServerDefinition extends SimpleResourceDefinition {
 
-    /**
-     * Default value of {@link Element#THREAD_POOL_SIZE}
-     */
-    public static final int DEFAULT_POOL_SIZE = 5;
     public static final int DEFAULT_PORT = 11990;
 
     public enum Element {
         UNKNOWN(null),
         SOCKET_BINDING("socket-binding"),
         WORKER("worker"),
-        THREAD_POOL_SIZE("thread-pool-size"),
         SOURCE("source"),
         NAME("name");
 
@@ -74,13 +67,6 @@ public class ServerDefinition extends SimpleResourceDefinition {
             .setAllowNull(false)
             .setAllowExpression(false)
             .build();
-    protected static final SimpleAttributeDefinition THREAD_POOL_SIZE_ATTR = new SimpleAttributeDefinitionBuilder(
-            Element.THREAD_POOL_SIZE.getXmlName(), ModelType.STRING)
-            .setAllowNull(true)
-            .setDefaultValue(ModelNode.fromString(String.valueOf(DEFAULT_POOL_SIZE)))
-            .setValidator(new IntRangeValidator(1, false, true))
-            .setAllowExpression(true)
-            .build();
     protected static final SimpleAttributeDefinition SOURCE_ATTR = new SimpleAttributeDefinitionBuilder(
             Element.SOURCE.getXmlName(), ModelType.STRING)
             .setAllowNull(false)
@@ -105,7 +91,6 @@ public class ServerDefinition extends SimpleResourceDefinition {
     public void registerAttributes(final ManagementResourceRegistration resourceRegistration) {
         resourceRegistration.registerReadWriteAttribute(WORKER_ATTR, null, DummyHandler.INSTANCE);
         resourceRegistration.registerReadWriteAttribute(SOCKET_BINDING_ATTR, null, DummyHandler.INSTANCE);
-        resourceRegistration.registerReadWriteAttribute(THREAD_POOL_SIZE_ATTR, null, DummyHandler.INSTANCE);
         resourceRegistration.registerReadWriteAttribute(SOURCE_ATTR, null, DummyHandler.INSTANCE);
         resourceRegistration.registerReadWriteAttribute(NAME_ATTR, null, DummyHandler.INSTANCE);
     }
