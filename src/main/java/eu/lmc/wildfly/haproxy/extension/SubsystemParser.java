@@ -60,6 +60,9 @@ class SubsystemParser implements XMLStreamConstants, XMLElementReader<List<Model
                 case SOCKET_BINDING:
                     ServerDefinition.SOCKET_BINDING_ATTR.parseAndSetParameter(value, addServerOperation, reader);
                     break;
+                case WORKER:
+                    ServerDefinition.WORKER_ATTR.parseAndSetParameter(value, addServerOperation, reader);
+                    break;
                 case THREAD_POOL_SIZE:
                     ServerDefinition.THREAD_POOL_SIZE_ATTR.parseAndSetParameter(value, addServerOperation, reader);
                     break;
@@ -101,6 +104,7 @@ class SubsystemParser implements XMLStreamConstants, XMLElementReader<List<Model
                 final ModelNode entry = property.getValue();
                 ServerDefinition.SOURCE_ATTR.marshallAsAttribute(entry, true, writer);
                 ServerDefinition.SOCKET_BINDING_ATTR.marshallAsAttribute(entry, true, writer);
+                ServerDefinition.WORKER_ATTR.marshallAsAttribute(entry, true, writer);
                 ServerDefinition.THREAD_POOL_SIZE_ATTR.marshallAsAttribute(entry, true, writer);
                 writer.writeEndElement();
             }

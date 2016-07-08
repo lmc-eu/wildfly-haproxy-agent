@@ -35,10 +35,12 @@ public class ServerDefinition extends SimpleResourceDefinition {
      * Default value of {@link Element#THREAD_POOL_SIZE}
      */
     public static final int DEFAULT_POOL_SIZE = 5;
+    public static final int DEFAULT_PORT = 11990;
 
     public enum Element {
         UNKNOWN(null),
         SOCKET_BINDING("socket-binding"),
+        WORKER("worker"),
         THREAD_POOL_SIZE("thread-pool-size"),
         SOURCE("source"),
         NAME("name");
@@ -65,6 +67,11 @@ public class ServerDefinition extends SimpleResourceDefinition {
     protected static final SimpleAttributeDefinition SOCKET_BINDING_ATTR = new SimpleAttributeDefinitionBuilder(
             Element.SOCKET_BINDING.getXmlName(), ModelType.STRING)
             .setAllowNull(true)
+            .setAllowExpression(false)
+            .build();
+    protected static final SimpleAttributeDefinition WORKER_ATTR = new SimpleAttributeDefinitionBuilder(
+            Element.WORKER.getXmlName(), ModelType.STRING)
+            .setAllowNull(false)
             .setAllowExpression(false)
             .build();
     protected static final SimpleAttributeDefinition THREAD_POOL_SIZE_ATTR = new SimpleAttributeDefinitionBuilder(
@@ -96,6 +103,7 @@ public class ServerDefinition extends SimpleResourceDefinition {
 
     @Override
     public void registerAttributes(final ManagementResourceRegistration resourceRegistration) {
+        resourceRegistration.registerReadWriteAttribute(WORKER_ATTR, null, DummyHandler.INSTANCE);
         resourceRegistration.registerReadWriteAttribute(SOCKET_BINDING_ATTR, null, DummyHandler.INSTANCE);
         resourceRegistration.registerReadWriteAttribute(THREAD_POOL_SIZE_ATTR, null, DummyHandler.INSTANCE);
         resourceRegistration.registerReadWriteAttribute(SOURCE_ATTR, null, DummyHandler.INSTANCE);

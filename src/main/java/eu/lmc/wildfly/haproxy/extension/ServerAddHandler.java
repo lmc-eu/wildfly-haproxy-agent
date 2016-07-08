@@ -11,6 +11,8 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
+import org.wildfly.extension.io.IOServices;
+import org.xnio.XnioWorker;
 
 import java.util.List;
 
@@ -29,12 +31,15 @@ class ServerAddHandler extends AbstractAddStepHandler {
         ServerDefinition.NAME_ATTR.validateAndSet(operation, model);
         ServerDefinition.SOURCE_ATTR.validateAndSet(operation, model);
         ServerDefinition.SOCKET_BINDING_ATTR.validateAndSet(operation, model);
+        ServerDefinition.WORKER_ATTR.validateAndSet(operation, model);
         ServerDefinition.THREAD_POOL_SIZE_ATTR.validateAndSet(operation, model);
     }
 
+    //TODO: replace with non-deprecated method variant
     @Override
     protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model, ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers) throws OperationFailedException {
         final ModelNode socketBinding = ServerDefinition.SOCKET_BINDING_ATTR.resolveModelAttribute(context, model);
+        final ModelNode workerBinding = ServerDefinition.WORKER_ATTR.resolveModelAttribute(context, model);
         final int poolSize = ServerDefinition.THREAD_POOL_SIZE_ATTR.resolveModelAttribute(context, model).asInt(ServerDefinition.DEFAULT_POOL_SIZE);
         final String source = ServerDefinition.SOURCE_ATTR.resolveModelAttribute(context, model).asString();
         //source name is special, because it's key
@@ -46,6 +51,10 @@ class ServerAddHandler extends AbstractAddStepHandler {
 
         if (socketBinding.isDefined()) {
             sb.addDependency(SocketBinding.JBOSS_BINDING_NAME.append(socketBinding.asString()), SocketBinding.class, service.getInjectedSocketBinding());
+        }
+        if (workerBinding.isDefined()) {
+            sb.addDependency(IOServices.WORKER.append(workerBinding.asString()),
+                    XnioWorker.class, service.getInjectedXnioWorker());
         }
 
         final ServiceController<HaProxyAgentService> controller = sb.addListener(verificationHandler)

@@ -28,6 +28,8 @@ public class SubsystemParsingTestCase extends AbstractSubsystemTest {
         super(SubsystemExtension.SUBSYSTEM_NAME, new SubsystemExtension());
     }
 
+
+
     /**
      * Tests that the xml is parsed into the correct operations
      */
@@ -37,6 +39,7 @@ public class SubsystemParsingTestCase extends AbstractSubsystemTest {
         String subsystemXml =
                 "<subsystem xmlns=\"" + SubsystemExtension.NAMESPACE + "\">" +
                         "<server name=\"x1\" source=\"/tmp/wildfly-status-haproxy\"" +
+                        " worker=\"w1\"" +
                         " thread-pool-size=\"12\"" +
                         " socket-binding=\"haproxy-socket-1\"" +
                         "/>" +
@@ -97,6 +100,7 @@ public class SubsystemParsingTestCase extends AbstractSubsystemTest {
         String subsystemXml =
                 "<subsystem xmlns=\"" + SubsystemExtension.NAMESPACE + "\">" +
                         "<server name=\"x1\" source=\"/tmp/wildfly-status-haproxy\"" +
+                        " worker=\"w1\"" +
                         " thread-pool-size=\"1001\"" +
                         " socket-binding=\"haproxy-socket-1\"" +
                         ">" +

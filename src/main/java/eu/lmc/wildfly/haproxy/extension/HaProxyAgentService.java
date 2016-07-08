@@ -9,8 +9,10 @@ import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.jboss.threads.JBossThreadFactory;
+import org.xnio.XnioWorker;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ThreadFactory;
@@ -25,11 +27,12 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
     private final Logger logger = Logger.getLogger(HaProxyAgentService.class);
 
     private final InjectedValue<SocketBinding> injectedSocketBinding = new InjectedValue<>();
+    private final InjectedValue<XnioWorker> injectedXnioWorker = new InjectedValue<>();
     private final String name;
     private final String source;
     private final int poolSize;
 
-    private AgentCheckServer server;
+    private NioAgentCheckServer server;
 
     public HaProxyAgentService(String name, String source, int poolSize) {
         this.name = name;
@@ -50,8 +53,18 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
         return this;
     }
 
+    /**
+     * Socket binding holder: used to fill dependency in subsystem handler.
+     */
     public InjectedValue<SocketBinding> getInjectedSocketBinding() {
         return injectedSocketBinding;
+    }
+
+    /**
+     * Socket binding holder: used to fill dependency in subsystem handler.
+     */
+    public InjectedValue<XnioWorker> getInjectedXnioWorker() {
+        return injectedXnioWorker;
     }
 
     public static ServiceName createServiceName(final String source) {
@@ -60,9 +73,10 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
 
     @Override
     public synchronized void start(StartContext startContext) throws StartException {
-        final int port = getInjectedSocketBinding().getValue().getPort();
         final SocketBinding socketBinding = injectedSocketBinding.getOptionalValue();
-        logger.info("haproxy agent " + getName() + " for  " + source + ", binding to port " + socketBinding.getPort());
+        final int port = socketBinding != null ? socketBinding.getPort() : ServerDefinition.DEFAULT_PORT;
+        final InetAddress bindAddr = socketBinding != null ? socketBinding.getAddress() : null;
+        logger.info("haproxy agent " + getName() + " for  " + source + ", binding to port " +  port);
 
         final Path filename = Paths.get(source);
         ThreadFactory tf = new JBossThreadFactory(
@@ -73,8 +87,8 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
                 null
         );
         try {
-            server = new AgentCheckServer(tf, getPoolSize(), filename);
-            server.start(port);
+            server = new NioAgentCheckServer(tf, getPoolSize(), filename);
+            server.start(bindAddr, port);
         } catch (IOException e) {
             logger.error("failed to start...", e);
             throw new StartException(e);

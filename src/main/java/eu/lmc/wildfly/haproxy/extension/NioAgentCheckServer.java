@@ -2,6 +2,7 @@ package eu.lmc.wildfly.haproxy.extension;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
@@ -20,9 +21,9 @@ import java.util.logging.Logger;
 /**
  * Start raw TCP socket that writes status from static file (or just default value).
  */
-class AgentCheckServer implements Closeable {
+class NioAgentCheckServer implements Closeable {
 
-    private final static Logger logger = Logger.getLogger(AgentCheckServer.class.getName());
+    private final static Logger logger = Logger.getLogger(NioAgentCheckServer.class.getName());
 
     private static final byte[] DEFAULT_STATE = "ready\n".getBytes();
 
@@ -35,7 +36,7 @@ class AgentCheckServer implements Closeable {
     private AsynchronousServerSocketChannel channel;
     private AsynchronousChannelGroup asyncGroup;
 
-    public AgentCheckServer(ThreadFactory threadFactory, int threadPoolSize, Path filename) throws IOException {
+    public NioAgentCheckServer(ThreadFactory threadFactory, int threadPoolSize, Path filename) throws IOException {
         this.threadFactory = threadFactory;
         this.threadPoolSize = threadPoolSize;
         this.filename = filename;
@@ -58,9 +59,9 @@ class AgentCheckServer implements Closeable {
         this.timeoutSeconds = timeoutSeconds;
     }
 
-    public void start(int port) throws IOException {
+    public void start(InetAddress listenAddress, int port) throws IOException {
         channel = AsynchronousServerSocketChannel.open(asyncGroup);
-        channel.bind(new InetSocketAddress(port));
+        channel.bind(new InetSocketAddress(listenAddress, port));
         channel.accept(null, new CompletionHandler<AsynchronousSocketChannel, Void>() {
             @Override
             public void completed(AsynchronousSocketChannel stream, Void attachment) {
