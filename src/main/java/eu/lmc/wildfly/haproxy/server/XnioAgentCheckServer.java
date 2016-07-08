@@ -1,5 +1,17 @@
 package eu.lmc.wildfly.haproxy.server;
 
+import org.apache.http.HttpException;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
+import org.apache.http.nio.IOControl;
+import org.apache.http.nio.client.methods.AsyncByteConsumer;
+import org.apache.http.nio.client.methods.HttpAsyncMethods;
+import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
+import org.apache.http.protocol.HttpContext;
+import org.jboss.threads.JBossThreadFactory;
 import org.xnio.ChannelListener;
 import org.xnio.FileAccess;
 import org.xnio.OptionMap;
@@ -9,19 +21,13 @@ import org.xnio.XnioWorker;
 import org.xnio.channels.AcceptingChannel;
 import org.xnio.channels.StreamSinkChannel;
 import org.xnio.conduits.ConduitStreamSinkChannel;
-import org.xnio.streams.ChannelOutputStream;
-import org.xnio.streams.Streams;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
-import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.WritableByteChannel;
@@ -49,6 +55,12 @@ class XnioAgentCheckServer extends AbstractAgentCheckServer {
 
     private AcceptingChannel<StreamConnection> server;
 
+    /**
+     * Optional: http client.
+     */
+    private CloseableHttpAsyncClient httpAsyncClient;
+    private HttpAsyncRequestProducer httpRequestProducer;
+
     public XnioAgentCheckServer(XnioWorker worker, Optional<File> filename, Optional<URI> httpUri) {
         this.worker = worker;
         this.filename = filename;
@@ -66,14 +78,24 @@ class XnioAgentCheckServer extends AbstractAgentCheckServer {
     @Override
     public void close() {
         safeClose(server);
+        safeClose(httpAsyncClient);
     }
 
     @Override
     public void start(InetAddress listenAddress, int port) throws IOException {
+
+        if (httpUri.isPresent()) {
+            httpAsyncClient = HttpAsyncClientBuilder.create()
+                    .disableCookieManagement()
+                    .setThreadFactory(new JBossThreadFactory(null, true, null, "httpAsync-%i", null, null))
+                    .build();
+            httpAsyncClient.start();
+            httpRequestProducer = HttpAsyncMethods.createGet(httpUri.get());
+        }
+
+
         ChannelListener<StreamSinkChannel> writeListener = channel -> {
             if (copyFile(channel))
-                return;
-            if (copyURI(channel))
                 return;
 
             ByteBuffer responseBuffer = ByteBuffer.wrap(DEFAULT_STATE);
@@ -101,8 +123,13 @@ class XnioAgentCheckServer extends AbstractAgentCheckServer {
                     logger.fine("accepted " + accepted.getPeerAddress());
                 }
                 final ConduitStreamSinkChannel sinkChannel = accepted.getSinkChannel();
-                sinkChannel.getWriteSetter().set(writeListener);
-                sinkChannel.resumeWrites();
+                //URI is special because async
+                if (startURI(sinkChannel))
+                    return;
+                else {
+                    sinkChannel.getWriteSetter().set(writeListener);
+                    sinkChannel.resumeWrites();
+                }
             }
         };
 
@@ -147,34 +174,80 @@ class XnioAgentCheckServer extends AbstractAgentCheckServer {
     /**
      * URI implementation: if present, copy file content to specified channel.
      *
-     * @param channel        channel to write file content to
+     * @param channel channel to write file content to
      * @return true when copied; false when no file is configured, present or something failed
      */
-    private boolean copyURI(StreamSinkChannel channel) {
-        if (!httpUri.isPresent()) {
-            return false;
-        }
-        final URL url;
-        try {
-            url = httpUri.get().toURL();
-        } catch (MalformedURLException e) {
-            //ok, not a valid URI..
+    private boolean startURI(StreamSinkChannel channel) {
+        if (httpRequestProducer == null) {
             return false;
         }
 
-        getWorker().submit(() -> {
-            try {
-                final URLConnection connection = url.openConnection();
-                connection.setReadTimeout(getTimeoutSeconds() * 1000 / 2);
-                connection.setConnectTimeout(getTimeoutSeconds() * 1000 / 2);
-                final InputStream is = connection.getInputStream();
-                Streams.copyStream(is, new ChannelOutputStream(channel), true);
-            } catch (IOException e) {
-                logger.log(Level.INFO, "failed to proxy url", e);
-            } finally {
+        AsyncByteConsumer<HttpResponse> consumer = new AsyncByteConsumer<HttpResponse>() {
+            private volatile HttpResponse response;
+            private volatile int count;
+            private volatile boolean stop = false;
+
+            @Override
+            protected void onByteReceived(ByteBuffer buf, IOControl ioctrl) throws IOException {
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine("onByteReceived: " + buf);
+                }
+                if (stop || !channel.isOpen()) {
+                    ioctrl.shutdown();
+                    return;
+                }
+                count += channel.write(buf);
+                if (buf.remaining() + count > getMaxSize()) {
+                    channel.shutdownWrites();
+                    ioctrl.shutdown();
+                } else {
+                    channel.resumeWrites();
+                }
+            }
+
+            @Override
+            protected void onResponseReceived(HttpResponse response) throws HttpException, IOException {
+                this.response = response;
+                final StatusLine statusLine = response.getStatusLine();
+                final int statusCode = statusLine.getStatusCode();
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine("onResponseReceived: " + response);
+                }
+                if (statusCode >= 300) {
+                    logger.info("non-OK status code received: " + statusCode + " " + statusLine.getReasonPhrase());
+                    if (channel.isOpen()) {
+                        channel.writeFinal(ByteBuffer.wrap(DEFAULT_STATE));
+                        channel.shutdownWrites();
+                    }
+                    stop = true;
+                }
+            }
+
+            @Override
+            protected HttpResponse buildResult(HttpContext context) throws Exception {
+                return response;
+            }
+        };
+
+        final FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
+            @Override
+            public void completed(HttpResponse result) {
                 safeClose(channel);
             }
-        });
+
+            @Override
+            public void failed(Exception ex) {
+                logger.log(Level.INFO, "error reading from http", ex);
+                safeClose(channel);
+            }
+
+            @Override
+            public void cancelled() {
+                logger.log(Level.INFO, "http reading cancelled");
+                safeClose(channel);
+            }
+        };
+        httpAsyncClient.execute(httpRequestProducer, consumer, callback);
 
         return true;
     }
