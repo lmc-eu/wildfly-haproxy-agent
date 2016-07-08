@@ -12,8 +12,13 @@ import org.jboss.msc.value.InjectedValue;
 import org.jboss.threads.JBossThreadFactory;
 import org.xnio.XnioWorker;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -75,20 +80,35 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
         final SocketBinding socketBinding = injectedSocketBinding.getOptionalValue();
         final int port = socketBinding != null ? socketBinding.getPort() : ServerDefinition.DEFAULT_PORT;
         final InetAddress bindAddr = socketBinding != null ? socketBinding.getAddress() : null;
-        logger.info("haproxy agent " + getName() + " for  " + source + ", binding to port " +  port);
+        logger.info("haproxy agent " + getName() + " for  " + source + ", binding to port " + port);
 
-        final Path filename = Paths.get(source);
         if (USE_JDK_NIO) {
+            final Path filename = Paths.get(source);
             startNio(port, bindAddr, filename);
         } else {
-            startXnio(port, bindAddr, filename);
+            startXnio(port, bindAddr, source);
         }
     }
 
-    private void startXnio(int port, InetAddress bindAddr, Path filename) throws StartException {
+    private void startXnio(int port, InetAddress bindAddr, String source) throws StartException {
+        Optional<File> file = Optional.empty();
+        Optional<URI> uri = Optional.empty();
+
+        if (source.matches("^https?://.*")) {
+            try {
+                final URI value = new URL(source).toURI();
+                uri = Optional.of(value);
+            } catch (URISyntaxException|MalformedURLException ignored) {
+                //ok, it's obviously not URL
+            }
+        }
+        if (!uri.isPresent()) {
+            file = Optional.of(new File(source));
+        }
+
         try {
             final XnioWorker xnio = getInjectedXnioWorker().getValue();
-            server = new XnioAgentCheckServer(xnio, Optional.of(filename.toFile()));
+            server = new XnioAgentCheckServer(xnio, file, uri);
             server.start(bindAddr, port);
         } catch (IOException e) {
             logger.error("failed to start...", e);
@@ -107,7 +127,7 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
         try {
             final XnioWorker xnio = getInjectedXnioWorker().getValue();
             final int poolSize = xnio.getIoThreadCount();
-            logger.info("pool size: "+poolSize);
+            logger.info("pool size: " + poolSize);
             assert poolSize > 0;
             server = new NioAgentCheckServer(tf, poolSize, filename);
             server.start(bindAddr, port);
