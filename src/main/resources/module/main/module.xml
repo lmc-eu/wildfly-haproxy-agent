@@ -18,5 +18,6 @@
         <module name="org.wildfly.extension.io"/>
         <module name="org.jboss.xnio"/>
         <module name="org.jboss.xnio.nio"/>
+        <module name="org.apache.httpcomponents"/>
     </dependencies>
 </module>
