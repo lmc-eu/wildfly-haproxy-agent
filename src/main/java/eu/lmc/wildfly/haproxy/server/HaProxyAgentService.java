@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The service itself.
@@ -72,9 +73,6 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
         return ServiceName.JBOSS.append("haproxy-agent", source);
     }
 
-    @SuppressWarnings("unused")
-    protected static boolean USE_JDK_NIO = false;
-
     @Override
     public synchronized void start(StartContext startContext) throws StartException {
         final SocketBinding socketBinding = injectedSocketBinding.getOptionalValue();
@@ -82,12 +80,7 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
         final InetAddress bindAddr = socketBinding != null ? socketBinding.getAddress() : null;
         logger.info("haproxy agent " + getName() + " for  " + source + ", binding to port " + port);
 
-        if (USE_JDK_NIO) {
-            final Path filename = Paths.get(source);
-            startNio(port, bindAddr, filename);
-        } else {
-            startXnio(port, bindAddr, source);
-        }
+        startXnio(port, bindAddr, source);
     }
 
     private void startXnio(int port, InetAddress bindAddr, String source) throws StartException {
@@ -109,27 +102,6 @@ public class HaProxyAgentService implements Service<HaProxyAgentService> {
         try {
             final XnioWorker xnio = getInjectedXnioWorker().getValue();
             server = new XnioAgentCheckServer(xnio, file, uri);
-            server.start(bindAddr, port);
-        } catch (IOException e) {
-            logger.error("failed to start...", e);
-            throw new StartException(e);
-        }
-    }
-
-    private void startNio(int port, InetAddress bindAddr, Path filename) throws StartException {
-        ThreadFactory tf = new JBossThreadFactory(
-                null, true, null,
-                "haproxy-" + getName() + "-%i",
-                //TODO: handler
-                null,
-                null
-        );
-        try {
-            final XnioWorker xnio = getInjectedXnioWorker().getValue();
-            final int poolSize = xnio.getIoThreadCount();
-            logger.info("pool size: " + poolSize);
-            assert poolSize > 0;
-            server = new NioAgentCheckServer(tf, poolSize, filename);
             server.start(bindAddr, port);
         } catch (IOException e) {
             logger.error("failed to start...", e);
