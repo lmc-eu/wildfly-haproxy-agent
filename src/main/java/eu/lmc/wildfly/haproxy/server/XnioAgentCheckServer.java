@@ -14,6 +14,7 @@ import org.apache.http.protocol.HttpContext;
 import org.jboss.threads.JBossThreadFactory;
 import org.xnio.ChannelListener;
 import org.xnio.FileAccess;
+import org.xnio.IoUtils;
 import org.xnio.OptionMap;
 import org.xnio.StreamConnection;
 import org.xnio.Xnio;
@@ -110,9 +111,9 @@ class XnioAgentCheckServer extends AbstractAgentCheckServer {
         };
 
         ChannelListener<AcceptingChannel<StreamConnection>> acceptListener = bindChannel -> {
-            StreamConnection accepted;
             // channel is ready to accept zero or more connections
             while (true) {
+                final StreamConnection accepted;
                 try {
                     if ((accepted = bindChannel.accept()) == null)
                         break;
@@ -123,6 +124,8 @@ class XnioAgentCheckServer extends AbstractAgentCheckServer {
                     logger.fine("accepted " + accepted.getPeerAddress());
                 }
                 final ConduitStreamSinkChannel sinkChannel = accepted.getSinkChannel();
+                //this is important: close the StreamConnection, otherwise the socket hangs half-closed!
+                sinkChannel.getCloseSetter().set(x -> IoUtils.safeClose(accepted));
                 //URI is special because async
                 if (startURI(sinkChannel))
                     return;
