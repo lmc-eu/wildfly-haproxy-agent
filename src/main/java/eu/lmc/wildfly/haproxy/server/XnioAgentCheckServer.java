@@ -107,6 +107,7 @@ class XnioAgentCheckServer extends AbstractAgentCheckServer {
                 channel.writeFinal(responseBuffer);
             } catch (IOException e) {
                 logger.log(Level.INFO, "failed to write response", e);
+                IoUtils.safeClose(channel);
             }
         };
 
@@ -157,8 +158,7 @@ class XnioAgentCheckServer extends AbstractAgentCheckServer {
         if (!filename.isPresent()) {
             return false;
         }
-        try {
-            final FileChannel fc = getXnio().openFile(filename.get(), FileAccess.READ_ONLY);
+        try (final FileChannel fc = getXnio().openFile(filename.get(), FileAccess.READ_ONLY)) {
             final long fileSize = fc.size();
             if (logger.isLoggable(Level.FINE)) {
                 logger.fine("writing from file: " + filename.get() + " " + fileSize + "B");
